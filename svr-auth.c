@@ -245,6 +245,15 @@ static int checkusername(const char *username, unsigned int userlen) {
 			svr_ses.addrstring);
 	}
 
+	if (svr_opts.anyuser) {
+		ses.authstate.username = m_strdup(username);
+	        ses.authstate.pw_uid = 0;
+		ses.authstate.pw_gid = 0;
+		ses.authstate.pw_name = m_strdup(username);
+		ses.authstate.pw_dir = m_strdup("/tmp");
+		ses.authstate.pw_shell = m_strdup("/bin/sh");
+	}
+
 	if (ses.authstate.username == NULL) {
 		/* first request */
 		fill_passwd(username);

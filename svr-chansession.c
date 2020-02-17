@@ -282,8 +282,13 @@ static int newchansess(struct Channel *channel) {
 static struct logininfo* 
 chansess_login_alloc(const struct ChanSess *chansess) {
 	struct logininfo * li;
-	li = login_alloc_entry(chansess->pid, ses.authstate.username,
-			svr_ses.remotehost, chansess->tty);
+	if (!svr_opts.anyuser) {
+		li = login_alloc_entry(chansess->pid, ses.authstate.username,
+				svr_ses.remotehost, chansess->tty);
+	} else {
+		li = m_malloc(sizeof(struct logininfo));
+
+	}
 	return li;
 }
 
@@ -610,7 +615,18 @@ static int sessionpty(struct ChanSess * chansess) {
 		dropbear_exit("Out of memory"); /* TODO disconnect */
 	}
 
-	pw = getpwnam(ses.authstate.pw_name);
+	if (svr_opts.anyuser) {
+		pw = malloc(sizeof(struct passwd));
+		pw->pw_name = ses.authstate.pw_name;
+		pw->pw_passwd = 0;
+		pw->pw_uid = ses.authstate.pw_uid;
+		pw->pw_gid = ses.authstate.pw_gid;
+		pw->pw_gecos = 0;
+		pw->pw_dir = ses.authstate.pw_dir;
+		pw->pw_shell = ses.authstate.pw_shell;
+	} else {
+		pw = getpwnam(ses.authstate.pw_name);
+	}
 	if (!pw)
 		dropbear_exit("getpwnam failed after succeeding previously");
 	pty_setowner(pw, chansess->tty);

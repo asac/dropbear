@@ -1,0 +1,28 @@
+#!/bin/sh
+
+lxc_pid() {
+        target=$1
+        nsenter -m/proc/1/ns/mnt \
+                lxc-info $target | grep PID: | sed -e 's/^[^0-9]*//'
+}
+
+target=$USER
+p=1
+
+if ! [ "$target" = "/" ]; then
+        p=`lxc_pid $target`
+
+        if [ -z "$p" ]; then
+                echo "no container found: $target"
+                exit 1
+        fi
+fi
+
+args=${SSH_ORIGINAL_COMMAND:-/bin/sh +l}
+nsenter -m/proc/$p/ns/mnt \
+        -n/proc/$p/ns/net \
+        -p/proc/$p/ns/pid \
+        -u/proc/$p/ns/uts \
+        -i/proc/$p/ns/ipc \
+        $args
+

@@ -168,6 +168,10 @@ insmultidropbear: dropbearmulti$(EXEEXT)
 	-ln -s $(bindir)/dropbearmulti$(EXEEXT) $(DESTDIR)$(sbindir)/dropbear$(EXEEXT) 
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
 	$(INSTALL) -m 644 $(srcdir)/dropbear.8  $(DESTDIR)$(mandir)/man8/dropbear.8
+	$(INSTALL) -d -m 755 $(DESTDIR)/etc/dropbear
+	echo "# This directory is where drop bear puts its hostkeys." > $(DESTDIR)/etc/dropbear/README.txt
+	$(INSTALL) -d -m 755 $(DESTDIR)/usr/bin
+	$(INSTALL) -m 755 $(srcdir)/fallbear-cmd $(DESTDIR)/usr/bin/fallbear-cmd
 
 insmulti%: dropbearmulti$(EXEEXT)
 	$(INSTALL) -d $(DESTDIR)$(bindir)
@@ -182,6 +186,10 @@ inst_dropbear: dropbear
 	$(INSTALL) dropbear$(EXEEXT) $(DESTDIR)$(sbindir)
 	$(INSTALL) -d $(DESTDIR)$(mandir)/man8
 	$(INSTALL) -m 644 $(srcdir)/dropbear.8 $(DESTDIR)$(mandir)/man8/dropbear.8
+	$(INSTALL) -d -m 755 $(DESTDIR)/etc/dropbear
+	echo "# This directory is where drop bear puts its hostkeys." > $(DESTDIR)/etc/dropbear/README.txt
+	$(INSTALL) -d -m 755 $(DESTDIR)/usr/bin
+	$(INSTALL) -m 755 $(srcdir)/fallbear-cmd $(DESTDIR)/usr/bin/fallbear-cmd
 
 inst_%: %
 	$(INSTALL) -d $(DESTDIR)$(bindir)

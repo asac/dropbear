@@ -64,6 +64,7 @@
 #include "ssh.h"
 #include "packet.h"
 #include "algo.h"
+#include "runopts.h"
 
 #if DROPBEAR_SVR_PUBKEY_AUTH
 
@@ -382,14 +383,18 @@ static int checkpubkey(const char* algo, unsigned int algolen,
 		goto out;
 	}
 
-	/* we don't need to check pw and pw_dir for validity, since
-	 * its been done in checkpubkeyperms. */
-	len = strlen(ses.authstate.pw_dir);
-	/* allocate max required pathname storage,
-	 * = path + "/.ssh/authorized_keys" + '\0' = pathlen + 22 */
-	filename = m_malloc(len + 22);
-	snprintf(filename, len + 22, "%s/.ssh/authorized_keys", 
-				ses.authstate.pw_dir);
+	if (!svr_opts.global_authorized_keysfile) {
+		/* we don't need to check pw and pw_dir for validity, since
+		 * its been done in checkpubkeyperms. */
+		len = strlen(ses.authstate.pw_dir);
+		/* allocate max required pathname storage,
+		 * = path + "/.ssh/authorized_keys" + '\0' = pathlen + 22 */
+		filename = m_malloc(len + 22);
+		snprintf(filename, len + 22, "%s/.ssh/authorized_keys", 
+					ses.authstate.pw_dir);
+	} else {
+		filename = m_strdup(svr_opts.global_authorized_keysfile);
+	}
 
 #if DROPBEAR_SVR_MULTIUSER
 	/* open the file as the authenticating user. */
@@ -470,12 +475,15 @@ static int checkpubkeyperms() {
 		goto out;
 	}
 
-	/* allocate max required pathname storage,
-	 * = path + "/.ssh/authorized_keys" + '\0' = pathlen + 22 */
-	len += 22;
-	filename = m_malloc(len);
-	strlcpy(filename, ses.authstate.pw_dir, len);
-
+	if (!svr_opts.global_authorized_keysfile) {
+		/* allocate max required pathname storage,
+		 * = path + "/.ssh/authorized_keys" + '\0' = pathlen + 22 */
+		len += 22;
+		filename = m_malloc(len);
+		strlcpy(filename, ses.authstate.pw_dir, len);
+	} else {
+		filename = m_strdup(svr_opts.global_authorized_keysfile);
+	}
 	/* check ~ */
 	if (checkfileperm(filename) != DROPBEAR_SUCCESS) {
 		goto out;

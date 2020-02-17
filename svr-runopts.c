@@ -93,6 +93,8 @@ static void printhelp(const char * progname) {
 					"		(default port is %s if none specified)\n"
 					"-P PidFile	Create pid file PidFile\n"
 					"		(default %s)\n"
+					"-n GlobalAuthorizedKeysFile	NO-user (any user) mode; uses same authorized_keys for everyone and requires a forced_command to be configured\n"
+
 #if INETD_MODE
 					"-i		Start for inetd\n"
 #endif
@@ -124,6 +126,7 @@ static void printhelp(const char * progname) {
 
 void svr_getopts(int argc, char ** argv) {
 
+	struct stat st;
 	unsigned int i, j;
 	char ** next = NULL;
 	int nextisport = 0;
@@ -167,6 +170,9 @@ void svr_getopts(int argc, char ** argv) {
         svr_opts.pubkey_plugin = NULL;
         svr_opts.pubkey_plugin_options = NULL;
 #endif
+
+	svr_opts.anyuser = 0;
+	svr_opts.global_authorized_keysfile = NULL;
 
 #ifndef DISABLE_ZLIB
 	opts.compress_mode = DROPBEAR_COMPRESS_DELAYED;
@@ -299,6 +305,10 @@ void svr_getopts(int argc, char ** argv) {
 					print_version();
 					exit(EXIT_SUCCESS);
 					break;
+				case 'n':
+					svr_opts.anyuser = 1;
+					next = &svr_opts.global_authorized_keysfile;
+					break;
 				default:
 					fprintf(stderr, "Invalid option -%c\n", c);
 					printhelp(argv[0]);
@@ -421,6 +431,13 @@ void svr_getopts(int argc, char ** argv) {
             svr_opts.pubkey_plugin_options = args;
         }
 #endif
+	if (svr_opts.anyuser) {
+		dropbear_log(LOG_INFO, "Any user mode enabled; disabling pass auth");
+		svr_opts.noauthpass = 1;
+#if ! DROPBEAR_SVR_PUBKEY_AUTH
+		dropbear_exit("Any User mode requires pubkey auth feature");
+#endif
+	}
 }
 
 static void addportandaddress(const char* spec) {
