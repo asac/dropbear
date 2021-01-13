@@ -1,28 +1,48 @@
 #!/bin/sh
 
+echo_debug() {
+    if [ -n "$PVDEBUG" ]; then
+	echo $@
+    fi
+}
+
 lxc_pid() {
-        target=$1
-        nsenter -m/proc/1/ns/mnt \
-                lxc-info $target | grep PID: | sed -e 's/^[^0-9]*//'
+    target=$1
+    nsenter -m/proc/1/ns/mnt \
+	    lxc-info $target | grep PID: | sed -e 's/^[^0-9]*//'
 }
 
 target=$USER
 p=1
 
 if ! [ "$target" = "/" ]; then
-        p=`lxc_pid $target`
+    p=`lxc_pid $target`
 
-        if [ -z "$p" ]; then
-                echo "no container found: $target"
-                exit 1
-        fi
+    if [ -z "$p" ]; then
+	echo "no container found: $target"
+	exit 1
+    fi
 fi
 
-args=${@:-/bin/sh -l}
-nsenter -m/proc/$p/ns/mnt \
-        -n/proc/$p/ns/net \
-        -p/proc/$p/ns/pid \
-        -u/proc/$p/ns/uts \
-        -i/proc/$p/ns/ipc \
-        $args
+PVUSER=${PVUSER:-root}
+echo_debug PVUSER: $PVUSER
+pwdline=`nsenter -m/proc/$p/ns/mnt -- [ -f /etc/passwd ] \
+		 && (nsenter -m/proc/$p/ns/mnt cat /etc/passwd | grep ^$PVUSER:) \
+		 || true`
 
+shell=`echo $pwdline | sed -e 's/^.*:\([^:]*\)$/\1/'`
+home=`echo $pwdline | sed -e 's/^.*:\([^:]*\):[^:]*$/\1/'`
+echo_debug shell: $shell
+echo_debug home: $home
+
+args=${SSH_ORIGINAL_COMMAND:-${shell:-/bin/sh} -l}
+echo_debug running shell: $args
+
+USER=root LOGNAME=root HOME=${home:-/tmp1} \
+    nsenter -m/proc/$p/ns/mnt \
+    -n/proc/$p/ns/net \
+    -p/proc/$p/ns/pid \
+    -u/proc/$p/ns/uts \
+    -i/proc/$p/ns/ipc \
+    -- \
+    $args
